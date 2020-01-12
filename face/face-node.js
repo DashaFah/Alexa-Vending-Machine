@@ -20,6 +20,35 @@ app.get('/', function(req, res){
     res.sendFile('index.html');
 });
 
+const config = require("../config");
+const mariadb = require('mariadb');
+const pool = mariadb.createPool({
+    host: config.host,
+    port: config.port,
+    user: config.user,
+    password: config.password,
+    database: config.database
+});
+
+/**
+ * Query the mariadb database
+ * @param sql
+ * @returns {Promise<boolean|any>}
+ */
+async function query(sql, params = []) {
+    let conn;
+    try {
+        conn = await pool.getConnection();
+        return await conn.query(sql, params);
+    } catch (err) {
+        throw err;
+    } finally {
+        if (conn)
+            await conn.end();
+    }
+    return false;
+}
+
 /**
  *
  */
@@ -64,7 +93,9 @@ app.post('/api/vending/load', async function(req, res) {
 
 app.post('/api/profiles/save', async function(req, res) {
     const newProfiles = req.body;
-    const profiles = await loadState('profiles') || {};
+
+    // save to cache
+    /* const profiles = await loadState('profiles') || {};
     for (let name in newProfiles) {
         if (newProfiles.hasOwnProperty(name)) {
             const profile = (profiles[name] || {});
@@ -78,11 +109,37 @@ app.post('/api/profiles/save', async function(req, res) {
             //delete newProfiles[name];
         }
     }
-    await saveState('profiles', profiles);
+    await saveState('profiles', profiles); */
+
+    // save to database
+    for (let name in newProfiles) {
+        if (newProfiles.hasOwnProperty(name)) {
+            const newProfile = newProfiles[name];
+
+            await createOrUpdateUser(name, null, null, newProfile);
+        }
+    }
+
     await res.sendStatus(200);
 });
 
+async function getUser(name) {
+    const sql = `SELECT * FROM user WHERE name=${name}`;
+    return (await query(sql, [name]))[0];
+}
+
+async function getUsers() {
+    const sql = `SELECT * FROM user`;
+    return (await query(sql));
+}
+
+async function createOrUpdateUser(name, surname = null, age = null, faceData = null) { //you can push here any aruments that you need, such as name, surname, age...
+    const sql = `REPLACE INTO user (name, surname, age, faceData) VALUES (?,?,?,?)`;
+    return (await query(sql, [name, surname, age, faceData]));
+}
+
 app.post('/api/profiles/load', async function(req, res) {
+    /*
     const profiles = await loadState('profiles') || {};
     if(req.body.hasOwnProperty('name')) {
         const name = req.body.name;
@@ -91,6 +148,18 @@ app.post('/api/profiles/load', async function(req, res) {
     } else {
         await res.json(profiles);
     }
+    */
+    const users = await getUsers();
+
+    const profiles = {};
+    users.forEach(user => {
+        if(user.hasOwnProperty("name")
+            && user.hasOwnProperty("faceData")
+            && user.faceData) {
+            profiles[user.name] = JSON.parse(user.faceData);
+        }
+    });
+    await res.json(profiles);
 });
 
 async function checkFlag(flag, callback, time, max, onFail) {

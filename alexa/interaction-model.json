@@ -42,9 +42,14 @@
                 "I want to create a profile",
                 "I want to make a profile",
                 "I want to create an account",
+                "create an account",
+                "create a profile",
+                "Sign up",
                 "I want you to remember me",
+                "I want you to save me",
                 "Remember my face",
-                "Remember me"
+                "Remember me",
+                "Save me"
             ]
         },
         {

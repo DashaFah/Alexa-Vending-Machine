@@ -2,7 +2,7 @@
 
 ### Setup
 
-Insert `config.json` in `/alexa` folder.
+Insert `config.json` in root folder.
 Insert `asl-config.json` in `/alexa` folder:
 ```
 {

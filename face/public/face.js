@@ -122,7 +122,8 @@ async function convertProfilesToLabeledDescriptors(profiles, labeledDescriptors)
             const descriptors = profiles[key].descriptors.map(function (value) {
                 if(value instanceof Float32Array)
                     return value;
-                return new Float32Array(value);
+                // TODO may use other function than object.values, which better map the keys
+                return new Float32Array(Object.values(value));
             });
             labeledDescriptors.push(new faceapi.LabeledFaceDescriptors(
                 key,
@@ -136,11 +137,10 @@ async function saveProfiles(profiles) {
     await postData('/api/profiles/save', profiles);
     for (let key in profiles) {
         if (profiles.hasOwnProperty(key)) {
+            console.log('Save profile ' + key);
             delete profiles[key];
         }
     }
-    // console.log('Log after:');
-    // console.log(Object.keys(profiles));
 }
 
 async function postData(url = '', data = {}) {

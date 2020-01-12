@@ -4,7 +4,7 @@
 const Alexa = require('ask-sdk-core');
 const fetch = require("node-fetch");
 // const Products = require("./products");
-const config = require("./config.json");
+const config = require("../config");
 
 //jdbc:mariadb://www.reb0.org:3306
 //Url: https://www.reb0.org/phpmyadmin
@@ -17,6 +17,25 @@ const pool = mariadb.createPool({
     database: config.database
 });
 
+/**
+ * Query the mariadb database
+ * @param sql
+ * @returns {Promise<boolean|any>}
+ */
+async function query(sql, params = []) {
+    let conn;
+    try {
+        conn = await pool.getConnection();
+        return await conn.query(sql, params);
+    } catch (err) {
+        throw err;
+    } finally {
+        if (conn)
+            await conn.end();
+    }
+    return false;
+}
+
 
 const EMOTION_HAPPY = "happy";
 const EMOTION_NEUTRAL = 'neutral';
@@ -25,17 +44,6 @@ const EMOTION_ANGRY = 'angry';
 const EMOTION_FEARFUL = 'fearful';
 const EMOTION_DISGUSTED = 'disgusted';
 const EMOTION_SURPRISED = 'surprised';
-
-async function getUser(user_id) {
-    const sql = `SELECT * FROM user WHERE user_ID=${user_id}`;
-    return (await query(sql))[0];
-}
-
-async function createNewUser(name) { //you can push here any aruments that you need, such as name, surname, age...
-    const sql = `INSERT INTO user (name) VALUES (${name})`;
-    return (await query(sql));
-
-}
 
 async function getPrice(search) {
     let product = await getProduct(search);
@@ -102,26 +110,6 @@ WHERE c.name = '${category}'`;
     // }
     // return productList;
 }
-
-/**
- * Query the mariadb database
- * @param sql
- * @returns {Promise<boolean|any>}
- */
-async function query(sql) {
-    let conn;
-    try {
-        conn = await pool.getConnection();
-        return await conn.query(sql);
-    } catch (err) {
-        throw err;
-    } finally {
-        if (conn)
-            await conn.end();
-    }
-    return false;
-}
-
 
 const LaunchRequestHandler = {
     canHandle(handlerInput) {
